@@ -50,7 +50,7 @@ Test it with:
 
 If this works close the shell again and execute check_pascom on the Nagios host:
 
-`check_pascom -h my.cloudstack.hostname`
+`check_pascom -host my.cloudstack.hostname`
 
 You should get something like:
 
