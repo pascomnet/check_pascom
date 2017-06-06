@@ -4,14 +4,15 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"log"
-	"net"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 
+	"github.com/mitchellh/go-homedir"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/crypto/ssh/agent"
 )
 
 const (
@@ -92,10 +93,29 @@ func (n *Nagios) DoChecks() {
 
 func (n *Nagios) Connect() {
 
+	if runtime.GOOS == "linux" {
+		os.Setenv("HOME", "")
+	}
+
+	home, err := homedir.Dir()
+	if err != nil {
+		log.Fatalf("Unable to read homedir of user: %v", err)
+	}
+
+	key, err := ioutil.ReadFile(home + "/.ssh/id_rsa")
+	if err != nil {
+		log.Fatalf("unable to read private key: %v", err)
+	}
+
+	signer, err := ssh.ParsePrivateKey(key)
+	if err != nil {
+		log.Fatalf("unable to parse private key: %v", err)
+	}
+
 	config := &ssh.ClientConfig{
 		User: n.User,
 		Auth: []ssh.AuthMethod{
-			n.sshAgent(),
+			ssh.PublicKeys(signer),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
@@ -106,13 +126,6 @@ func (n *Nagios) Connect() {
 		log.Fatalf("SSH Connection failed. User: '%s', Host: '%s', Auth: sshkey, Error: '%s'", n.User, n.Host, err.Error())
 	}
 
-}
-
-func (n *Nagios) sshAgent() ssh.AuthMethod {
-	if sshAgent, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK")); err == nil {
-		return ssh.PublicKeysCallback(agent.NewClient(sshAgent).Signers)
-	}
-	return nil
 }
 
 func (n *Nagios) ExecRemoteCommand(command string) []string {

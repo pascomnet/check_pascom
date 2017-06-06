@@ -42,7 +42,7 @@ func main() {
 
 		for _, container := range containerList {
 
-			n.AddCheck("Container mem "+container, check.ContainerMem(container), "85", "95")
+			n.AddCheck("Container mem "+container, check.ContainerMem(container), "90", "95")
 
 		}
 

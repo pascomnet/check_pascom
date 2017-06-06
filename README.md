@@ -30,10 +30,6 @@ If so, copy it to your clipboard. If not, create one:
 
 `ssh-keygen`
 
-Add the keys (if not already done) to the authentication agent:
-
-`ssh-add`
-
 ### pascom cloudstack
 
 Login as admin on the cloudstack via ssh and become root.
