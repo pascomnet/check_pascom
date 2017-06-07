@@ -3,6 +3,7 @@ package nagios
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -30,11 +31,13 @@ var exitCodes = map[string]int{
 }
 
 type Nagios struct {
-	User   string
-	Host   string
-	Checks []Check
-	Debug  bool
-	client *ssh.Client
+	User       string
+	Host       string
+	Checks     []Check
+	Containers []Container
+	Excludes   map[string]bool
+	Debug      bool
+	client     *ssh.Client
 }
 
 type Check struct {
@@ -45,14 +48,29 @@ type Check struct {
 	State         string
 }
 
+type Container struct {
+	URL          string      `json:"url"`
+	ID           int         `json:"id"`
+	Name         string      `json:"name"`
+	DisplayName  interface{} `json:"display_name"`
+	Memory       int         `json:"memory"`
+	Running      bool        `json:"running"`
+	ImageName    string      `json:"image_name"`
+	ImageVersion string      `json:"image_version"`
+	Host         int         `json:"host"`
+}
+
 type CheckFunc func(*Nagios) int
 
-func New(user string, host string, debug bool) (c *Nagios) {
-	c = &Nagios{
+func New(user string, host string, debug bool) (n *Nagios) {
+	n = &Nagios{
 		User:  user,
 		Host:  host,
 		Debug: debug,
 	}
+
+	n.Excludes = make(map[string]bool)
+
 	return
 
 }
@@ -64,6 +82,28 @@ func (n *Nagios) AddCheck(name string, check CheckFunc, warn string, crit string
 		WarnThreshold: warn,
 		CritThreshold: crit,
 	})
+
+}
+
+func (n *Nagios) AddExclude(name string) {
+	n.Excludes[name] = true
+}
+
+func (n *Nagios) GetContainerInfo() {
+
+	var containerListByte []byte
+
+	containerListJSON := n.ExecRemoteCommand("lxc-attach -n controller -- wget --no-check-certificate -O- -q https://localhost/api/v1/containers/")
+
+	for _, line := range containerListJSON {
+		containerListByte = append(containerListByte, []byte(line)...)
+	}
+
+	err := json.Unmarshal(containerListByte, &n.Containers)
+
+	if err != nil {
+		log.Fatal("Cloud not convert json container list to struct", err)
+	}
 
 }
 
@@ -82,6 +122,10 @@ func (n *Nagios) DoChecks() {
 
 		if n.testThreshold(result, check.CritThreshold) {
 			state = CRITICAL
+		}
+
+		if result == -1 {
+			state = UNKNOWN
 		}
 
 		n.Checks[index].State = state

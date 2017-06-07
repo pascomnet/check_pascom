@@ -13,6 +13,10 @@ func ContainerMem(container string) nagios.CheckFunc {
 		o := n.ExecRemoteCommand("lxc-attach -n " + container + " -- free | sed -e 1d | head -n1")
 		var usage int
 
+		if o == nil {
+			return -1
+		}
+
 		/*
 		 Sample output o for remote command: (total, used, free, shared, buffers, cached)
 		 Mem:        262144      54224     207920      91904          0      20660

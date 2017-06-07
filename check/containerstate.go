@@ -14,6 +14,10 @@ func ContainerState(container string) nagios.CheckFunc {
 
 		o := n.ExecRemoteCommand("lxc-ls -f --filter=^" + container + "$ | tail -n1")
 
+		if o == nil {
+			return -1
+		}
+
 		/*
 		   Sample output o for remote command: (NAME,STATE,AUTOSTART,GROUPS,IPV4,IPV6)
 		   controller RUNNING 0         cs     10.0.3.182 -
