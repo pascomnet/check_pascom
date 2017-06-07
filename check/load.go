@@ -41,11 +41,19 @@ func Load() nagios.CheckFunc {
 		/*
 		 Sample output o for remote command:
 		 10:40  up 10 days,  2:08, 2 users, load averages: 1.44 1.67 1.73
+		 or if shorter online then one day
+		 16:27:18 up  7:29,  1 user,  load average: 0.11, 0.06, 0.01
 		*/
 		field := strings.Fields(o[0])
-		load5 := field[10]
+
+		load5 := field[len(field)-2]
 
 		load5 = strings.Trim(load5, " ,")
+
+		if n.Debug {
+			log.Printf("Extracted load (5min average): %s", load5)
+		}
+
 		load5float, err := strconv.ParseFloat(load5, 64)
 		if err != nil {
 			log.Fatal("ERROR: check.Load: Failed to convert cpu load to float!")

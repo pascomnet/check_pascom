@@ -295,10 +295,15 @@ func (n *Nagios) testThreshold(value int, threshold string) bool {
 			match = true
 		}
 	} else {
-		if value <= rangeStart || rangeEnd <= value {
+		if value < rangeStart || rangeEnd < value {
 			match = true
 		}
 	}
 
+	if n.Debug {
+		log.Printf("Threshold '%d:%d', Value '%d', InsideRange '%t', Match '%t'", rangeStart, rangeEnd, value, insideRange, match)
+	}
+
 	return match
+
 }
